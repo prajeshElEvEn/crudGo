@@ -3,17 +3,22 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 )
+
+var tmpl *template.Template
 
 func main() {
 	r := mux.NewRouter()
 	fs := http.FileServer(http.Dir("static/"))
-	db, err := sql.Open("mysql", "root:eleven@(127.0.0.1:3306)/root?parseTime=true")
+	tmpl = template.Must(template.ParseFiles("layout.html"))
+	db, err := sql.Open("mysql", "root:eleven@(127.0.0.1:3306)/crud_go?parseTime=true")
 
 	if err != nil {
 		log.Fatal(err)
@@ -116,8 +121,26 @@ func main() {
 	http.ListenAndServe(":80", r)
 }
 
+type Todo struct {
+	Title string
+	Done  bool
+}
+
+type TodoPageData struct {
+	PageTitle string
+	Todos     []Todo
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, you requested %s\n", r.URL.Path)
+	data := TodoPageData{
+		PageTitle: "My TODO list",
+		Todos: []Todo{
+			{Title: "Task 1", Done: false},
+			{Title: "Task 2", Done: true},
+			{Title: "Task 3", Done: true},
+		},
+	}
+	tmpl.Execute(w, data)
 }
 
 func getBook(w http.ResponseWriter, r *http.Request) {
